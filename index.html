@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CoreInventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0d0d0d;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #f5a623;
+    --accent2: #e84545;
+    --accent3: #4caf7d;
+    --text: #f0f0f0;
+    --muted: #888;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+  /* LOGIN */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    background: radial-gradient(ellipse at 30% 20%, #1a0f00 0%, #0d0d0d 60%);
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 48px; width: 360px; border-radius: 4px;
+    box-shadow: 0 0 60px rgba(245,166,35,0.08);
+  }
+  .login-logo { font-family: var(--font-mono); font-size: 22px; color: var(--accent); margin-bottom: 32px; }
+  .login-logo span { color: var(--muted); font-size: 13px; display: block; margin-top: 4px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 14px; border-radius: 3px; font-family: var(--font-body); font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+  .btn {
+    padding: 11px 22px; border: none; cursor: pointer; font-family: var(--font-body);
+    font-weight: 500; font-size: 14px; border-radius: 3px; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #e09510; }
+  .btn-success { background: var(--accent3); color: #000; }
+  .btn-danger { background: var(--accent2); color: #fff; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-full { width: 100%; }
+  .error-msg { color: var(--accent2); font-size: 13px; margin-top: 8px; }
+
+  /* APP SHELL */
+  #app { display: none; }
+  .shell { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px; background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 16px; font-family: var(--font-mono); font-size: 15px;
+    color: var(--accent); border-bottom: 1px solid var(--border);
+    letter-spacing: 0.04em;
+  }
+  .sidebar-brand small { color: var(--muted); font-size: 10px; display: block; margin-top: 2px; }
+  .sidebar-section { padding: 16px 12px 6px; font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+    font-size: 13px; cursor: pointer; border-radius: 3px; margin: 1px 8px;
+    color: var(--muted); transition: all 0.15s;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(245,166,35,0.12); color: var(--accent); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer {
+    margin-top: auto; padding: 16px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted);
+  }
+  .logout-btn { cursor: pointer; color: var(--accent2); font-size: 12px; margin-top: 4px; }
+
+  /* MAIN */
+  .main { margin-left: 220px; flex: 1; padding: 32px; }
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-family: var(--font-mono); font-size: 22px; color: var(--text); }
+  .page-header p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+  /* KPI CARDS */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .kpi-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 20px; position: relative; overflow: hidden;
+  }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+  .kpi-card.low::before { background: var(--accent2); }
+  .kpi-card.good::before { background: var(--accent3); }
+  .kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .kpi-value { font-family: var(--font-mono); font-size: 32px; color: var(--text); margin-top: 8px; }
+  .kpi-card.low .kpi-value { color: var(--accent2); }
+
+  /* TABLES */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-family: var(--font-mono); font-size: 14px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: var(--surface2); color: var(--muted); font-weight: 500; text-align: left; padding: 10px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+  tbody td { padding: 11px 16px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* BADGES */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .badge-done { background: rgba(76,175,125,0.15); color: var(--accent3); }
+  .badge-draft { background: rgba(245,166,35,0.12); color: var(--accent); }
+  .badge-low { background: rgba(232,69,69,0.15); color: var(--accent2); }
+  .badge-ok { background: rgba(76,175,125,0.12); color: var(--accent3); }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 4px;
+    padding: 32px; width: 420px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal h2 { font-family: var(--font-mono); font-size: 16px; margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* HISTORY */
+  .history-item { display: flex; align-items: flex-start; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .history-icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .h-receipt { background: rgba(76,175,125,0.15); }
+  .h-delivery { background: rgba(232,69,69,0.15); }
+  .h-transfer { background: rgba(245,166,35,0.12); }
+  .h-adjustment { background: rgba(136,136,136,0.12); }
+  .history-info small { color: var(--muted); font-size: 11px; }
+
+  /* MISC */
+  .page-view { display: none; }
+  .page-view.active { display: block; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .spacer { flex: 1; }
+  .search-input {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 3px; font-family: var(--font-body); font-size: 13px; outline: none; width: 220px;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .qty-pos { color: var(--accent3); font-family: var(--font-mono); }
+  .qty-neg { color: var(--accent2); font-family: var(--font-mono); }
+  .empty-state { padding: 48px; text-align: center; color: var(--muted); }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--surface);
+    border: 1px solid var(--accent3); color: var(--accent3);
+    padding: 12px 20px; border-radius: 4px; font-size: 13px; z-index: 200;
+    transform: translateY(80px); transition: transform 0.3s; pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); }
+  .toast.error { border-color: var(--accent2); color: var(--accent2); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">CoreInventory<span>Inventory Management System</span></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input id="login-user" type="text" placeholder="admin" />
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••" />
+    </div>
+    <div id="login-error" class="error-msg" style="display:none;margin-bottom:12px;"></div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In →</button>
+    <p style="margin-top:16px;font-size:12px;color:var(--muted)">Demo: admin / admin123</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="shell">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">CoreInventory<small>IMS v1.0</small></div>
+      <div class="sidebar-section">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</div>
+      <div class="sidebar-section">Inventory</div>
+      <div class="nav-item" onclick="showPage('products',this)"><span class="nav-icon">📦</span>Products</div>
+      <div class="nav-item" onclick="showPage('warehouses',this)"><span class="nav-icon">🏭</span>Warehouses</div>
+      <div class="sidebar-section">Operations</div>
+      <div class="nav-item" onclick="showPage('receipts',this)"><span class="nav-icon">📥</span>Receipts</div>
+      <div class="nav-item" onclick="showPage('deliveries',this)"><span class="nav-icon">📤</span>Deliveries</div>
+      <div class="nav-item" onclick="showPage('transfers',this)"><span class="nav-icon">🔄</span>Transfers</div>
+      <div class="nav-item" onclick="showPage('adjustments',this)"><span class="nav-icon">🔧</span>Adjustments</div>
+      <div class="sidebar-section">Logs</div>
+      <div class="nav-item" onclick="showPage('history',this)"><span class="nav-icon">📋</span>Move History</div>
+      <div class="sidebar-footer">
+        <div id="user-label">—</div>
+        <div class="logout-btn" onclick="doLogout()">← Logout</div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- DASHBOARD -->
+      <div id="page-dashboard" class="page-view active">
+        <div class="page-header"><h1>Dashboard</h1><p>Inventory snapshot at a glance</p></div>
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="card">
+          <div class="card-header"><h3>Low Stock Alerts</h3></div>
+          <div class="table-wrap"><table>
+            <thead><tr><th>Product</th><th>SKU</th><th>Stock</th><th>Reorder Level</th><th>Status</th></tr></thead>
+            <tbody id="low-stock-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="page-products" class="page-view">
+        <div class="page-header"><h1>Products</h1><p>Manage your product catalog</p></div>
+        <div class="row">
+          <input class="search-input" placeholder="Search by name or SKU..." oninput="filterProducts(this.value)" />
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('product-modal')">+ Add Product</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>Name</th><th>SKU</th><th>Category</th><th>Unit</th><th>Stock</th><th>Reorder Lvl</th><th>Status</th></tr></thead>
+            <tbody id="products-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- WAREHOUSES -->
+      <div id="page-warehouses" class="page-view">
+        <div class="page-header"><h1>Warehouses</h1><p>Multi-warehouse support</p></div>
+        <div class="row">
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('warehouse-modal')">+ Add Warehouse</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Name</th><th>Location</th></tr></thead>
+            <tbody id="warehouses-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- RECEIPTS -->
+      <div id="page-receipts" class="page-view">
+        <div class="page-header"><h1>Receipts</h1><p>Incoming stock from vendors</p></div>
+        <div class="row">
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('receipt-modal')">+ New Receipt</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Supplier</th><th>Product</th><th>Qty</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody id="receipts-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- DELIVERIES -->
+      <div id="page-deliveries" class="page-view">
+        <div class="page-header"><h1>Deliveries</h1><p>Outgoing stock to customers</p></div>
+        <div class="row">
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('delivery-modal')">+ New Delivery</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Customer</th><th>Product</th><th>Qty</th><th>Status</th><th>Date</th><th>Action</th></tr></thead>
+            <tbody id="deliveries-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- TRANSFERS -->
+      <div id="page-transfers" class="page-view">
+        <div class="page-header"><h1>Internal Transfers</h1><p>Move stock between warehouses</p></div>
+        <div class="row">
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('transfer-modal')">+ New Transfer</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Product</th><th>From</th><th>To</th><th>Qty</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="transfers-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- ADJUSTMENTS -->
+      <div id="page-adjustments" class="page-view">
+        <div class="page-header"><h1>Stock Adjustments</h1><p>Fix mismatches between recorded and physical stock</p></div>
+        <div class="row">
+          <div class="spacer"></div>
+          <button class="btn btn-primary" onclick="openModal('adjustment-modal')">+ New Adjustment</button>
+        </div>
+        <div class="card">
+          <div class="table-wrap"><table>
+            <thead><tr><th>ID</th><th>Product</th><th>Old Stock</th><th>New Stock</th><th>Δ Change</th><th>Reason</th><th>Date</th></tr></thead>
+            <tbody id="adjustments-table"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <!-- HISTORY -->
+      <div id="page-history" class="page-view">
+        <div class="page-header"><h1>Move History</h1><p>Full stock ledger of all operations</p></div>
+        <div class="card" style="padding:20px;" id="history-list"></div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Product Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <h2>Add Product</h2>
+    <div class="form-group"><label>Name</label><input id="p-name" placeholder="Steel Rods"/></div>
+    <div class="form-group"><label>SKU / Code</label><input id="p-sku" placeholder="STL-001"/></div>
+    <div class="form-group"><label>Category</label><input id="p-cat" placeholder="Raw Materials"/></div>
+    <div class="form-group"><label>Unit of Measure</label><input id="p-uom" placeholder="kg / units / liters"/></div>
+    <div class="form-group"><label>Initial Stock (optional)</label><input id="p-stock" type="number" placeholder="0"/></div>
+    <div class="form-group"><label>Reorder Level</label><input id="p-reorder" type="number" placeholder="10"/></div>
+    <div class="form-group"><label>Warehouse</label><select id="p-wh"></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('product-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitProduct()">Add Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Warehouse Modal -->
+<div class="modal-overlay" id="warehouse-modal">
+  <div class="modal">
+    <h2>Add Warehouse</h2>
+    <div class="form-group"><label>Name</label><input id="wh-name" placeholder="Main Warehouse"/></div>
+    <div class="form-group"><label>Location</label><input id="wh-loc" placeholder="Building A"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('warehouse-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitWarehouse()">Add Warehouse</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal-overlay" id="receipt-modal">
+  <div class="modal">
+    <h2>New Receipt</h2>
+    <div class="form-group"><label>Supplier</label><input id="r-supplier" placeholder="Acme Supplies"/></div>
+    <div class="form-group"><label>Product</label><select id="r-product"></select></div>
+    <div class="form-group"><label>Quantity</label><input id="r-qty" type="number" placeholder="50"/></div>
+    <div class="form-group"><label>Warehouse</label><select id="r-wh"></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('receipt-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitReceipt()">Create Receipt</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delivery Modal -->
+<div class="modal-overlay" id="delivery-modal">
+  <div class="modal">
+    <h2>New Delivery Order</h2>
+    <div class="form-group"><label>Customer</label><input id="d-customer" placeholder="Client XYZ"/></div>
+    <div class="form-group"><label>Product</label><select id="d-product"></select></div>
+    <div class="form-group"><label>Quantity</label><input id="d-qty" type="number" placeholder="10"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('delivery-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitDelivery()">Create Delivery</button>
+    </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-overlay" id="transfer-modal">
+  <div class="modal">
+    <h2>New Internal Transfer</h2>
+    <div class="form-group"><label>Product</label><select id="t-product"></select></div>
+    <div class="form-group"><label>From Warehouse</label><select id="t-from"></select></div>
+    <div class="form-group"><label>To Warehouse</label><select id="t-to"></select></div>
+    <div class="form-group"><label>Quantity</label><input id="t-qty" type="number" placeholder="20"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('transfer-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitTransfer()">Create Transfer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Adjustment Modal -->
+<div class="modal-overlay" id="adjustment-modal">
+  <div class="modal">
+    <h2>Stock Adjustment</h2>
+    <div class="form-group"><label>Product</label><select id="adj-product" onchange="loadCurrentStock(this)"></select></div>
+    <div class="form-group"><label>Current Stock</label><input id="adj-old" disabled /></div>
+    <div class="form-group"><label>Actual (Physical) Quantity</label><input id="adj-new" type="number" placeholder="Enter correct quantity"/></div>
+    <div class="form-group"><label>Reason</label><input id="adj-reason" placeholder="Damaged goods / Count correction"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('adjustment-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitAdjustment()">Apply Adjustment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://coreinventory.onrender.com';
+let currentUser = null;
+let allProducts = [];
+let allWarehouses = [];
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('login-user').value;
+  const password = document.getElementById('login-pass').value;
+  try {
+    const res = await fetch(`${API}/auth/login`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    });
+    if (!res.ok) throw new Error('Invalid credentials');
+    const data = await res.json();
+    currentUser = data.user;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('user-label').textContent = `${currentUser.username} (${currentUser.role})`;
+    await loadGlobals();
+    showPage('dashboard', document.querySelector('.nav-item'));
+    loadDashboard();
+  } catch(e) {
+    const el = document.getElementById('login-error');
+    el.style.display = 'block'; el.textContent = e.message;
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// Allow Enter key on login
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// ─── NAV ──────────────────────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const loaders = { dashboard: loadDashboard, products: loadProducts, warehouses: loadWarehouses,
+    receipts: loadReceipts, deliveries: loadDeliveries, transfers: loadTransfers,
+    adjustments: loadAdjustments, history: loadHistory };
+  if(loaders[name]) loaders[name]();
+}
+
+// ─── MODALS ───────────────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  populateSelects();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); }));
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── GLOBALS ──────────────────────────────────────────────────────────────────
+async function loadGlobals() {
+  const [pRes, wRes] = await Promise.all([fetch(`${API}/products`), fetch(`${API}/warehouses`)]);
+  allProducts = await pRes.json();
+  allWarehouses = await wRes.json();
+}
+
+function populateSelects() {
+  const selects = { 'p-wh': allWarehouses, 'r-product': allProducts, 'r-wh': allWarehouses,
+    'd-product': allProducts, 't-product': allProducts, 't-from': allWarehouses,
+    't-to': allWarehouses, 'adj-product': allProducts };
+  for(const [id, items] of Object.entries(selects)) {
+    const el = document.getElementById(id);
+    if(!el) continue;
+    el.innerHTML = '<option value="">-- Select --</option>';
+    items.forEach(i => el.innerHTML += `<option value="${i.id}">${i.name}${i.location ? ' – '+i.location : ''}</option>`);
+  }
+}
+
+function loadCurrentStock(sel) {
+  const product = allProducts.find(p => p.id == sel.value);
+  document.getElementById('adj-old').value = product ? product.current_stock : '';
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const res = await fetch(`${API}/dashboard/kpis`);
+  const kpis = await res.json();
+  document.getElementById('kpi-grid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">Total Products</div><div class="kpi-value">${kpis.total_products}</div></div>
+    <div class="kpi-card low"><div class="kpi-label">Low / Out of Stock</div><div class="kpi-value">${kpis.low_stock_items}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pending Receipts</div><div class="kpi-value">${kpis.pending_receipts}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Pending Deliveries</div><div class="kpi-value">${kpis.pending_deliveries}</div></div>
+    <div class="kpi-card"><div class="kpi-label">Transfers Scheduled</div><div class="kpi-value">${kpis.internal_transfers_scheduled}</div></div>
+  `;
+  const products = await (await fetch(`${API}/products`)).json();
+  allProducts = products;
+  const lowStock = products.filter(p => p.current_stock <= p.reorder_level);
+  const tbody = document.getElementById('low-stock-table');
+  tbody.innerHTML = lowStock.length ? lowStock.map(p => `
+    <tr>
+      <td>${p.name}</td><td style="font-family:var(--font-mono);font-size:12px;">${p.sku}</td>
+      <td class="qty-neg">${p.current_stock}</td><td>${p.reorder_level}</td>
+      <td><span class="badge badge-low">⚠ Low Stock</span></td>
+    </tr>`).join('') : '<tr><td colspan="5" class="empty-state">✅ All products are well-stocked</td></tr>';
+}
+
+// ─── PRODUCTS ────────────────────────────────────────────────────────────────
+async function loadProducts() {
+  const res = await fetch(`${API}/products`);
+  allProducts = await res.json();
+  renderProductsTable(allProducts);
+}
+function renderProductsTable(products) {
+  const tbody = document.getElementById('products-table');
+  tbody.innerHTML = products.length ? products.map(p => `
+    <tr>
+      <td>${p.name}</td>
+      <td style="font-family:var(--font-mono);font-size:12px;">${p.sku}</td>
+      <td>${p.category}</td><td>${p.unit_of_measure}</td>
+      <td class="${p.current_stock <= p.reorder_level ? 'qty-neg' : 'qty-pos'}">${p.current_stock}</td>
+      <td>${p.reorder_level}</td>
+      <td><span class="badge ${p.current_stock <= p.reorder_level ? 'badge-low' : 'badge-ok'}">${p.current_stock <= p.reorder_level ? '⚠ Low' : '✓ OK'}</span></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="empty-state">No products found</td></tr>';
+}
+function filterProducts(q) {
+  const filtered = allProducts.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.sku.toLowerCase().includes(q.toLowerCase()));
+  renderProductsTable(filtered);
+}
+async function submitProduct() {
+  const body = { name: document.getElementById('p-name').value, sku: document.getElementById('p-sku').value,
+    category: document.getElementById('p-cat').value, unit_of_measure: document.getElementById('p-uom').value,
+    current_stock: parseFloat(document.getElementById('p-stock').value)||0,
+    reorder_level: parseFloat(document.getElementById('p-reorder').value)||10,
+    warehouse_id: parseInt(document.getElementById('p-wh').value)||null };
+  await fetch(`${API}/products`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('product-modal'); await loadGlobals(); loadProducts(); toast('Product added!');
+}
+
+// ─── WAREHOUSES ──────────────────────────────────────────────────────────────
+async function loadWarehouses() {
+  const res = await fetch(`${API}/warehouses`);
+  allWarehouses = await res.json();
+  const tbody = document.getElementById('warehouses-table');
+  tbody.innerHTML = allWarehouses.length ? allWarehouses.map(w => `<tr><td>${w.id}</td><td>${w.name}</td><td>${w.location}</td></tr>`).join('') : '<tr><td colspan="3" class="empty-state">No warehouses yet</td></tr>';
+}
+async function submitWarehouse() {
+  const body = {name: document.getElementById('wh-name').value, location: document.getElementById('wh-loc').value};
+  await fetch(`${API}/warehouses`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('warehouse-modal'); await loadGlobals(); loadWarehouses(); toast('Warehouse added!');
+}
+
+// ─── RECEIPTS ────────────────────────────────────────────────────────────────
+async function loadReceipts() {
+  const [rRes, pRes] = await Promise.all([fetch(`${API}/receipts`), fetch(`${API}/products`)]);
+  const receipts = await rRes.json(); allProducts = await pRes.json();
+  const tbody = document.getElementById('receipts-table');
+  tbody.innerHTML = receipts.length ? receipts.map(r => {
+    const p = allProducts.find(x => x.id === r.product_id);
+    return `<tr>
+      <td>#${r.id}</td><td>${r.supplier}</td><td>${p?p.name:'?'}</td>
+      <td class="qty-pos">+${r.quantity}</td>
+      <td><span class="badge ${r.status==='Done'?'badge-done':'badge-draft'}">${r.status}</span></td>
+      <td>${new Date(r.created_at).toLocaleDateString()}</td>
+      <td>${r.status==='Draft'?`<button class="btn btn-success" style="padding:5px 12px;font-size:12px;" onclick="validateReceipt(${r.id})">Validate</button>`:'-'}</td>
+    </tr>`;}).join('') : '<tr><td colspan="7" class="empty-state">No receipts yet</td></tr>';
+}
+async function submitReceipt() {
+  const body = {supplier: document.getElementById('r-supplier').value, product_id: parseInt(document.getElementById('r-product').value),
+    quantity: parseFloat(document.getElementById('r-qty').value), warehouse_id: parseInt(document.getElementById('r-wh').value)||null};
+  await fetch(`${API}/receipts`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('receipt-modal'); loadReceipts(); toast('Receipt created!');
+}
+async function validateReceipt(id) {
+  await fetch(`${API}/receipts/${id}/validate`, {method:'POST'});
+  await loadGlobals(); loadReceipts(); toast('Stock updated! Receipt validated ✓');
+}
+
+// ─── DELIVERIES ──────────────────────────────────────────────────────────────
+async function loadDeliveries() {
+  const [dRes, pRes] = await Promise.all([fetch(`${API}/deliveries`), fetch(`${API}/products`)]);
+  const deliveries = await dRes.json(); allProducts = await pRes.json();
+  const tbody = document.getElementById('deliveries-table');
+  tbody.innerHTML = deliveries.length ? deliveries.map(d => {
+    const p = allProducts.find(x => x.id === d.product_id);
+    return `<tr>
+      <td>#${d.id}</td><td>${d.customer}</td><td>${p?p.name:'?'}</td>
+      <td class="qty-neg">-${d.quantity}</td>
+      <td><span class="badge ${d.status==='Done'?'badge-done':'badge-draft'}">${d.status}</span></td>
+      <td>${new Date(d.created_at).toLocaleDateString()}</td>
+      <td>${d.status==='Draft'?`<button class="btn btn-success" style="padding:5px 12px;font-size:12px;" onclick="validateDelivery(${d.id})">Validate</button>`:'-'}</td>
+    </tr>`;}).join('') : '<tr><td colspan="7" class="empty-state">No deliveries yet</td></tr>';
+}
+async function submitDelivery() {
+  const body = {customer: document.getElementById('d-customer').value, product_id: parseInt(document.getElementById('d-product').value),
+    quantity: parseFloat(document.getElementById('d-qty').value)};
+  await fetch(`${API}/deliveries`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('delivery-modal'); loadDeliveries(); toast('Delivery created!');
+}
+async function validateDelivery(id) {
+  const res = await fetch(`${API}/deliveries/${id}/validate`, {method:'POST'});
+  if(res.ok) { await loadGlobals(); loadDeliveries(); toast('Delivery validated ✓ Stock decreased'); }
+  else toast('Insufficient stock!', true);
+}
+
+// ─── TRANSFERS ───────────────────────────────────────────────────────────────
+async function loadTransfers() {
+  const [tRes, pRes, wRes] = await Promise.all([fetch(`${API}/transfers`), fetch(`${API}/products`), fetch(`${API}/warehouses`)]);
+  const transfers = await tRes.json(); allProducts = await pRes.json(); allWarehouses = await wRes.json();
+  const tbody = document.getElementById('transfers-table');
+  tbody.innerHTML = transfers.length ? transfers.map(t => {
+    const p = allProducts.find(x => x.id === t.product_id);
+    const fw = allWarehouses.find(x => x.id === t.from_warehouse_id);
+    const tw = allWarehouses.find(x => x.id === t.to_warehouse_id);
+    return `<tr>
+      <td>#${t.id}</td><td>${p?p.name:'?'}</td><td>${fw?fw.name:'?'}</td><td>${tw?tw.name:'?'}</td>
+      <td>${t.quantity}</td>
+      <td><span class="badge ${t.status==='Done'?'badge-done':'badge-draft'}">${t.status}</span></td>
+      <td>${t.status==='Draft'?`<button class="btn btn-success" style="padding:5px 12px;font-size:12px;" onclick="validateTransfer(${t.id})">Validate</button>`:'-'}</td>
+    </tr>`;}).join('') : '<tr><td colspan="7" class="empty-state">No transfers yet</td></tr>';
+}
+async function submitTransfer() {
+  const body = {product_id: parseInt(document.getElementById('t-product').value),
+    from_warehouse_id: parseInt(document.getElementById('t-from').value),
+    to_warehouse_id: parseInt(document.getElementById('t-to').value),
+    quantity: parseFloat(document.getElementById('t-qty').value)};
+  await fetch(`${API}/transfers`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('transfer-modal'); loadTransfers(); toast('Transfer created!');
+}
+async function validateTransfer(id) {
+  await fetch(`${API}/transfers/${id}/validate`, {method:'POST'});
+  loadTransfers(); toast('Transfer validated ✓');
+}
+
+// ─── ADJUSTMENTS ─────────────────────────────────────────────────────────────
+async function loadAdjustments() {
+  const [aRes, pRes] = await Promise.all([fetch(`${API}/adjustments`), fetch(`${API}/products`)]);
+  const adjustments = await aRes.json(); allProducts = await pRes.json();
+  const tbody = document.getElementById('adjustments-table');
+  tbody.innerHTML = adjustments.length ? adjustments.map(a => {
+    const p = allProducts.find(x => x.id === a.product_id);
+    const diff = a.new_stock - a.old_stock;
+    return `<tr>
+      <td>#${a.id}</td><td>${p?p.name:'?'}</td><td>${a.old_stock}</td><td>${a.new_stock}</td>
+      <td class="${diff>=0?'qty-pos':'qty-neg'}">${diff>=0?'+':''}${diff}</td>
+      <td>${a.reason}</td><td>${new Date(a.created_at).toLocaleDateString()}</td>
+    </tr>`;}).join('') : '<tr><td colspan="7" class="empty-state">No adjustments yet</td></tr>';
+}
+async function submitAdjustment() {
+  const body = {product_id: parseInt(document.getElementById('adj-product').value),
+    new_stock: parseFloat(document.getElementById('adj-new').value),
+    reason: document.getElementById('adj-reason').value};
+  await fetch(`${API}/adjustments`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  closeModal('adjustment-modal'); await loadGlobals(); loadAdjustments(); toast('Adjustment applied!');
+}
+
+// ─── HISTORY ─────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const res = await fetch(`${API}/history`);
+  const history = await res.json();
+  const icons = {Receipt:'📥',Delivery:'📤',Transfer:'🔄',Adjustment:'🔧'};
+  const classes = {Receipt:'h-receipt',Delivery:'h-delivery',Transfer:'h-transfer',Adjustment:'h-adjustment'};
+  document.getElementById('history-list').innerHTML = history.length ? history.map(h => `
+    <div class="history-item">
+      <div class="history-icon ${classes[h.operation_type]}">${icons[h.operation_type]||'📋'}</div>
+      <div class="history-info">
+        <strong>${h.operation_type}</strong> — ${h.product_name}
+        <span class="${h.quantity_change>=0?'qty-pos':'qty-neg'}" style="margin-left:8px;">${h.quantity_change>0?'+':''}${h.quantity_change}</span>
+        <br/><small>${h.notes} · ${new Date(h.created_at).toLocaleString()}</small>
+      </div>
+    </div>`).join('') : '<div class="empty-state">No history yet</div>';
+}
+</script>
+</body>
+</html>
