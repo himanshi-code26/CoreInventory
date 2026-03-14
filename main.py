@@ -4,7 +4,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, DateTime, 
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from datetime import datetime
 
-app = Flask(__name__)
+app = Flask(__name__):
+@app.route("/")
+def serve_frontend():
+    return send_from_directory("frontend", "index.html")
 CORS(app)
 
 # ── DATABASE ──────────────────────────────
